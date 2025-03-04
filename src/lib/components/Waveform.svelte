@@ -41,6 +41,12 @@
 		return `${min}:${sec < 10 ? '0' : ''}${sec}.${ms.toString().padStart(3, '0')}`;
 	}
 
+	function updateRegionAnnotation(regionId: string, annotation: string) {
+		regionsList = regionsList.map((region) =>
+			region.id === regionId ? { ...region, annotation } : region
+		);
+	}
+
 	// Play/Pause Function
 	function togglePlay() {
 		if (ws) {
@@ -108,6 +114,52 @@
 				regionsList[index].start = region.start;
 				regionsList[index].end = region.end;
 			});
+		}
+	}
+
+	async function submitAndLoadNextClip() {
+		// Validate that all regions have annotations
+		const validRegions = regionsList.filter((region) => region.annotation.trim() !== '');
+
+		if (validRegions.length !== regionsList.length) {
+			alert('Please select a class for each region.');
+			return;
+		}
+
+		// Prepare the JSON structure
+		const annotationData = {
+			audio_url: url,
+			annotations: validRegions.map((region) => ({
+				start: parseFloat(region.start.toFixed(6)),
+				end: parseFloat(region.end.toFixed(6)),
+				annotation: region.annotation
+			}))
+		};
+
+		try {
+			// Generate and download JSON file
+			const jsonBlob = new Blob([JSON.stringify(annotationData, null, 2)], {
+				type: 'application/json'
+			});
+			const jsonUrl = URL.createObjectURL(jsonBlob);
+
+			// Create a temporary link to download the file
+			const link = document.createElement('a');
+			link.href = jsonUrl;
+			link.download = `annotations_${Date.now()}.json`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+
+			// Optional: Clear regions after submission
+			regionsList = [];
+			regions.clearRegions();
+
+			// TODO: Implement logic to load next clip
+			console.log('Submitted annotations and ready to load next clip');
+		} catch (error) {
+			console.error('Error generating JSON:', error);
+			alert('Failed to generate annotation file.');
 		}
 	}
 
@@ -195,8 +247,8 @@
 				Add Region
 			</button>
 			<button
-				onclick={addRegion}
-				class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-2 mb-2 rounded"
+				onclick={submitAndLoadNextClip}
+				class="bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-1 px-2 mb-2 rounded"
 			>
 				Submit and Load next clip
 			</button>
@@ -205,6 +257,9 @@
 		{#each regionsList as region (region.id)}
 			<RegionCard
 				{region}
+				onAnnotationChange={(id: string, annotation: string) => {
+					updateRegionAnnotation(id, annotation);
+				}}
 				onDelete={(e: string) => {
 					regionsList = regionsList.filter((r) => r.id !== e);
 					regions
