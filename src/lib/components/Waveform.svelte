@@ -21,6 +21,15 @@
 		annotation: string;
 	};
 
+	type AnnotationData = {
+		audio_url: string;
+		annotations: {
+			start: number;
+			end: number;
+			annotation: string;
+		}[];
+	};
+
 	let { url = undefined } = $props();
 	let ws: WaveSurfer;
 	let regions: any;
@@ -30,6 +39,7 @@
 	let duration = $state('0:00.000');
 	let regionsList = $state<RegionType[]>([]);
 	let currentAudioUrl = $state(url);
+	let sessionAnnotations: AnnotationData[] = $state([]);
 	const skipAmount = 0.05;
 	const random = (min: number, max: number) => Math.random() * (max - min) + min;
 	const randomColor = () => `rgba(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)}, 0.5)`;
@@ -126,7 +136,7 @@
 		}
 
 		// Prepare the JSON structure
-		const annotationData = {
+		const annotationData: AnnotationData = {
 			audio_url: currentAudioUrl,
 			annotations: validRegions.map((region) => ({
 				start: parseFloat(region.start.toFixed(6)),
@@ -135,21 +145,10 @@
 			}))
 		};
 
+		// Add to session annotations
+		sessionAnnotations = [...sessionAnnotations, annotationData];
+
 		try {
-			// Generate and download JSON file
-			const jsonBlob = new Blob([JSON.stringify(annotationData, null, 2)], {
-				type: 'application/json'
-			});
-			const jsonUrl = URL.createObjectURL(jsonBlob);
-
-			// Create a temporary link to download the file
-			const link = document.createElement('a');
-			link.href = jsonUrl;
-			link.download = `annotations_${Date.now()}.json`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-
 			// Load next clip
 			const nextClip = await getRandomAudioClip();
 			if (nextClip) {
@@ -167,8 +166,39 @@
 				initWaveSurfer(nextClip);
 			}
 		} catch (error) {
-			console.error('Error generating JSON:', error);
-			alert('Failed to generate annotation file.');
+			console.error('Error loading next clip:', error);
+			alert('Failed to load next audio clip.');
+		}
+	}
+
+	function finishSession() {
+		if (sessionAnnotations.length === 0) {
+			alert('No annotations to download.');
+			return;
+		}
+
+		try {
+			// Generate and download JSON file with all session annotations
+			const jsonBlob = new Blob([JSON.stringify(sessionAnnotations, null, 2)], {
+				type: 'application/json'
+			});
+			const jsonUrl = URL.createObjectURL(jsonBlob);
+
+			// Create a temporary link to download the file
+			const link = document.createElement('a');
+			link.href = jsonUrl;
+			link.download = `session_annotations_${Date.now()}.json`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+
+			// Reset session annotations
+			sessionAnnotations = [];
+
+			alert('Session annotations downloaded successfully!');
+		} catch (error) {
+			console.error('Error generating session JSON:', error);
+			alert('Failed to generate session annotation file.');
 		}
 	}
 
@@ -258,7 +288,7 @@
 
 	<!-- Region Controls -->
 	<div class="flex flex-col items-center w-full sm:w-96 rounded-lg mt-2">
-		<!-- Add Region Button -->
+		<!-- Action Buttons -->
 		<div>
 			<button
 				onclick={addRegion}
@@ -273,10 +303,10 @@
 				Submit & Load new clip
 			</button>
 			<button
-				onclick={addRegion}
+				onclick={finishSession}
 				class="bg-red-500 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
 			>
-				Finish Sesion
+				Finish Session
 			</button>
 		</div>
 
