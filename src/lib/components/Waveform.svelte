@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { getRandomAudioClip } from '$lib/audioLoader';
 	import WaveSurfer from 'wavesurfer.js';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -20,24 +21,23 @@
 		annotation: string;
 	};
 
-	//export let url: string; // Audio URL passed as a prop
-	let { url } = $props();
+	let { url = undefined } = $props();
 	let ws: WaveSurfer;
-	let regions: any; // Declare regions as any typregions: ions as any type for now
+	let regions: any;
 	let isPlaying = $state(false);
-	let volume = $state(1); // Default volume (1 = 100%)
+	let volume = $state(1);
 	let currentTime = $state('0:00.000');
 	let duration = $state('0:00.000');
 	let regionsList = $state<RegionType[]>([]);
-	const skipAmount = 0.05; // Skip 1/20th of a second
+	let currentAudioUrl = $state(url);
+	const skipAmount = 0.05;
 	const random = (min: number, max: number) => Math.random() * (max - min) + min;
 	const randomColor = () => `rgba(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)}, 0.5)`;
 
-	// Format time helper function (adds milliseconds)
 	function formatTime(seconds: number) {
 		const min = Math.floor(seconds / 60);
 		const sec = Math.floor(seconds % 60);
-		const ms = Math.floor((seconds % 1) * 1000); // Extract milliseconds
+		const ms = Math.floor((seconds % 1) * 1000);
 		return `${min}:${sec < 10 ? '0' : ''}${sec}.${ms.toString().padStart(3, '0')}`;
 	}
 
@@ -47,7 +47,6 @@
 		);
 	}
 
-	// Play/Pause Function
 	function togglePlay() {
 		if (ws) {
 			ws.playPause();
@@ -55,23 +54,20 @@
 		}
 	}
 
-	// Skip Forward
 	function skipForward() {
 		if (ws) {
 			ws.setTime(ws.getCurrentTime() + skipAmount);
-			updateTime(); // Manually update timer
+			updateTime();
 		}
 	}
 
-	// Skip Backward
 	function skipBackward() {
 		if (ws) {
 			ws.setTime(Math.max(0, ws.getCurrentTime() - skipAmount));
-			updateTime(); // Manually update timer
+			updateTime();
 		}
 	}
 
-	// Volume Control Function
 	function changeVolume(event: Event) {
 		if (ws) {
 			const target = event.target as HTMLInputElement;
@@ -80,18 +76,16 @@
 		}
 	}
 
-	// Update the time display
 	function updateTime() {
 		if (ws) {
 			currentTime = formatTime(ws.getCurrentTime());
 		}
 	}
 
-	// Add Region Function
 	function addRegion() {
 		if (ws) {
-			const start = ws.getCurrentTime(); // Get the current time position
-			const end = start + 2; // Set the region to last for 2 seconds
+			const start = ws.getCurrentTime();
+			const end = start + 2;
 			const color = randomColor();
 			const id = `region-${Date.now()}`;
 			const region = regions.addRegion({
@@ -126,9 +120,14 @@
 			return;
 		}
 
+		if (validRegions.length === 0) {
+			alert('Please add at least one region.');
+			return;
+		}
+
 		// Prepare the JSON structure
 		const annotationData = {
-			audio_url: url,
+			audio_url: currentAudioUrl,
 			annotations: validRegions.map((region) => ({
 				start: parseFloat(region.start.toFixed(6)),
 				end: parseFloat(region.end.toFixed(6)),
@@ -151,33 +150,44 @@
 			link.click();
 			document.body.removeChild(link);
 
-			// Optional: Clear regions after submission
-			regionsList = [];
-			regions.clearRegions();
+			// Load next clip
+			const nextClip = await getRandomAudioClip();
+			if (nextClip) {
+				// Destroy existing wavesurfer instance
+				ws.destroy();
 
-			// TODO: Implement logic to load next clip
-			console.log('Submitted annotations and ready to load next clip');
+				// Reset state
+				currentAudioUrl = nextClip;
+				regionsList = [];
+				isPlaying = false;
+				currentTime = '0:00.000';
+				duration = '0:00.000';
+
+				// Recreate wavesurfer instance with new audio
+				initWaveSurfer(nextClip);
+			}
 		} catch (error) {
 			console.error('Error generating JSON:', error);
 			alert('Failed to generate annotation file.');
 		}
 	}
 
-	onMount(() => {
-		// Create the WaveSurfer instance first
+	function initWaveSurfer(audioUrl: string) {
+		// Create the WaveSurfer instance
 		ws = WaveSurfer.create({
 			container: '#waveform',
 			waveColor: '#d3cecd',
 			progressColor: '#005cc8',
-			url: url,
+			url: audioUrl,
 			dragToSeek: true,
-			height: 50,
-			plugins: [] // Initialize without regions plugin for now
+			barHeight: 5,
+			plugins: [],
+			sampleRate: 16000
 		});
 
-		// Initialize the regions plugin and attach it to WaveSurfer after it is created
-		regions = RegionsPlugin.create(); // Initialize regions plugin
-		ws.registerPlugin(regions); // Add regions plugin after WaveSurfer is created
+		// Initialize the regions plugin and attach it to WaveSurfer
+		regions = RegionsPlugin.create();
+		ws.registerPlugin(regions);
 
 		// Handle events after the audio is ready
 		ws.on('ready', () => {
@@ -188,6 +198,16 @@
 		// Update time during playback
 		ws.on('audioprocess', updateTime);
 		ws.on('seeking', updateTime);
+	}
+
+	onMount(async () => {
+		// If url is not provided, get a random audio clip
+		if (!currentAudioUrl) {
+			currentAudioUrl = await getRandomAudioClip();
+		}
+
+		// Initialize WaveSurfer
+		initWaveSurfer(currentAudioUrl);
 	});
 </script>
 
@@ -242,15 +262,21 @@
 		<div>
 			<button
 				onclick={addRegion}
-				class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-2 mb-2 rounded"
+				class="bg-blue-500 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
 			>
 				Add Region
 			</button>
 			<button
 				onclick={submitAndLoadNextClip}
-				class="bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-1 px-2 mb-2 rounded"
+				class="bg-green-500 hover:bg-green-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
 			>
-				Submit and Load next clip
+				Submit & Load new clip
+			</button>
+			<button
+				onclick={addRegion}
+				class="bg-red-500 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
+			>
+				Finish Sesion
 			</button>
 		</div>
 

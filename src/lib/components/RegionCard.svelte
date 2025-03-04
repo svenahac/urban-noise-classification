@@ -28,7 +28,7 @@
 
 <div
 	style="background-color: {region.color};"
-	class="w-full sm:w-96 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4 bg-gray-50 border border-gray-200"
+	class="w-full sm:w-96 mb-1 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4 bg-gray-50 border border-gray-200"
 >
 	<!-- Start Time -->
 	<div class="flex flex-col items-center w-1/4">
@@ -75,7 +75,7 @@
 		<button
 			class="h-6 w-10 bg-red-500 hover:bg-red-700 text-white rounded-md font-semibold text-xs"
 			onclick={() => {
-				onDelete(region.id);
+				onDelete(region.id), console.log(region.id);
 			}}
 		>
 			Delete
