@@ -1,6 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import WaveSurfer from 'wavesurfer.js';
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import {
+		faBackward,
+		faForward,
+		faPlay,
+		faPause,
+		faVolumeHigh
+	} from '@fortawesome/free-solid-svg-icons';
+	import { faBluesky } from '@fortawesome/free-brands-svg-icons';
 
 	export let url: string; // Audio URL passed as a prop
 
@@ -85,24 +94,28 @@
 
 <div class="flex flex-col items-center w-full max-w-xs sm:max-w-xl">
 	<!-- Waveform Display -->
-	<div id="waveform" class="w-full"></div>
+	<div id="waveform" class="w-full bg-blue-500 rounded-md"></div>
 
 	<!-- Media Controls -->
 	<div class="flex items-center w-full sm:w-96 bg-gray-100 px-4 py-2 rounded-lg mt-10">
 		<!-- Skip Backward Button -->
-		<button on:click={skipBackward} class="text-gray-700 hover:text-gray-900 text-xl"> ⏪ </button>
+		<button on:click={skipBackward} class="text-gray-700 hover:text-gray-900 text-xl mr-1">
+			<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faBackward} />
+		</button>
 
 		<!-- Play/Pause Button -->
 		<button on:click={togglePlay} class="text-gray-700 hover:text-gray-900 text-2xl">
 			{#if isPlaying}
-				⏸
+				<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faPause} />
 			{:else}
-				▶️
+				<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faPlay} />
 			{/if}
 		</button>
 
 		<!-- Skip Forward Button -->
-		<button on:click={skipForward} class="text-gray-700 hover:text-gray-900 text-xl"> ⏩ </button>
+		<button on:click={skipForward} class="text-gray-700 hover:text-gray-900 text-xl ml-1">
+			<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faForward} />
+		</button>
 
 		<!-- Time Display -->
 		<span class="text-gray-700 text-sm ml-3">{currentTime} / {duration}</span>
@@ -111,7 +124,9 @@
 		<div class="flex-grow"></div>
 
 		<!-- Volume Icon & Control -->
-		<button class="text-gray-700 hover:text-gray-900 mr-2 text-lg"> 🔊 </button>
+		<button class="text-gray-700 hover:text-gray-900 mr-2 text-lg">
+			<FontAwesomeIcon class="text-blue-500" icon={faVolumeHigh} />
+		</button>
 		<input
 			type="range"
 			class="w-20 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer"
@@ -121,5 +136,15 @@
 			bind:value={volume}
 			on:input={changeVolume}
 		/>
+	</div>
+
+	<!-- Region Controls -->
+	<div class="flex items-center w-full sm:w-96 rounded-lg mt-2">
+		<!-- Add Region Button -->
+		<button
+			class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-2 rounded"
+		>
+			Add Region
+		</button>
 	</div>
 </div>
