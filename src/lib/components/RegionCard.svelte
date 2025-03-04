@@ -62,7 +62,7 @@
 
 <div
 	style="background-color: {region.color};"
-	class="w-full sm:w-96 mb-1 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4 bg-gray-50 border border-gray-200"
+	class="w-full sm:w-lg mb-1 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4 bg-gray-50 border border-gray-200"
 >
 	<!-- Start Time -->
 	<div class="flex flex-col items-center w-1/4">
@@ -70,6 +70,7 @@
 		<input
 			id="start"
 			type="text"
+			readonly
 			class="w-full h-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 text-xs sm:text-sm"
 			placeholder="0:00"
 			value={formatTime(region.start)}
@@ -82,6 +83,7 @@
 		<input
 			id="end"
 			type="text"
+			readonly
 			class="w-full h-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 text-xs sm:text-sm"
 			placeholder="0:00"
 			value={formatTime(region.end)}
@@ -104,7 +106,7 @@
 
 			{#if isDropdownOpen}
 				<ul
-					class="absolute z-10 w-24 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg mt-1"
+					class="absolute z-10 max-w-32 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg mt-1"
 					role="listbox"
 				>
 					{#each filteredClasses as { name }}
@@ -137,7 +139,7 @@
 	<div class="flex flex-col items-center gap-0.5">
 		<button
 			type="button"
-			class="h-6 w-10 bg-red-500 hover:bg-red-700 text-white rounded-md font-semibold text-xs"
+			class="h-6 w-12 bg-red-500 hover:bg-red-700 text-white rounded-md font-semibold text-xs sm:text-sm"
 			onclick={() => {
 				onDelete(region.id);
 			}}

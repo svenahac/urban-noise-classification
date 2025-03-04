@@ -121,7 +121,7 @@
 		}
 	}
 
-	async function submitAndLoadNextClip() {
+	async function loadNewClip() {
 		// Validate that all regions have annotations
 		const validRegions = regionsList.filter((region) => region.annotation.trim() !== '');
 
@@ -289,22 +289,22 @@
 	<!-- Region Controls -->
 	<div class="flex flex-col items-center w-full sm:w-96 rounded-lg mt-2">
 		<!-- Action Buttons -->
-		<div>
+		<div class="mb-2">
 			<button
 				onclick={addRegion}
-				class="bg-blue-500 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
+				class="bg-blue-500 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 rounded"
 			>
 				Add Region
 			</button>
 			<button
-				onclick={submitAndLoadNextClip}
-				class="bg-green-500 hover:bg-green-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
+				onclick={loadNewClip}
+				class="bg-green-500 hover:bg-green-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 rounded"
 			>
-				Submit & Load new clip
+				Load New Clip
 			</button>
 			<button
 				onclick={finishSession}
-				class="bg-red-500 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 mb-2 rounded"
+				class="bg-red-500 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 rounded"
 			>
 				Finish Session
 			</button>
