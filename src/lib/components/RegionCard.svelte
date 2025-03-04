@@ -62,16 +62,16 @@
 
 <div
 	style="background-color: {region.color};"
-	class="w-full sm:w-lg mb-1 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4 bg-gray-50 border border-gray-200"
+	class="w-full sm:w-lg mb-2 h-16 rounded-md shadow-lg p-4 flex items-center justify-between gap-4"
 >
 	<!-- Start Time -->
 	<div class="flex flex-col items-center w-1/4">
-		<label for="start" class="text-xs font-semibold text-gray-700">Start:</label>
+		<label for="start" class="text-xs font-semibold text-white">Start:</label>
 		<input
 			id="start"
 			type="text"
 			readonly
-			class="w-full h-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 text-xs sm:text-sm"
+			class="w-full h-8 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm"
 			placeholder="0:00"
 			value={formatTime(region.start)}
 		/>
@@ -79,12 +79,12 @@
 
 	<!-- End Time -->
 	<div class="flex flex-col items-center w-1/4">
-		<label for="end" class="text-xs font-semibold text-gray-700">End:</label>
+		<label for="end" class="text-xs font-semibold text-white">End:</label>
 		<input
 			id="end"
 			type="text"
 			readonly
-			class="w-full h-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 text-xs sm:text-sm"
+			class="w-full h-8 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm"
 			placeholder="0:00"
 			value={formatTime(region.end)}
 		/>
@@ -92,13 +92,13 @@
 
 	<!-- Annotation -->
 	<div class="flex flex-col items-center w-1/4 relative" id={`dropdown-${region.id}`}>
-		<label for="annotation" class="text-xs font-semibold text-gray-700">Class:</label>
+		<label for="annotation" class="text-xs font-semibold text-white">Class:</label>
 
 		<!-- Searchable Dropdown -->
 		<div class="w-full">
 			<input
 				type="text"
-				class="w-full max-w-[200px] h-9 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 text-xs sm:text-sm cursor-pointer"
+				class="w-full max-w-[200px] h-9 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm cursor-pointer"
 				placeholder={selectedAnnotation || 'Select Class'}
 				bind:value={searchTerm}
 				onfocus={() => (isDropdownOpen = true)}
@@ -114,9 +114,9 @@
 							role="option"
 							aria-selected={selectedAnnotation === name}
 							tabindex="0"
-							class="px-2 py-1 text-xs sm:text-sm hover:bg-gray-100 cursor-pointer {selectedAnnotation ===
+							class="px-2 py-1 text-xs sm:text-sm hover:bg-gray-300 cursor-pointer {selectedAnnotation ===
 							name
-								? 'bg-blue-100'
+								? 'bg-gray-300'
 								: ''}"
 							onclick={() => handleAnnotationChange(name)}
 							onkeydown={(e) => {

@@ -206,8 +206,8 @@
 		// Create the WaveSurfer instance
 		ws = WaveSurfer.create({
 			container: '#waveform',
-			waveColor: '#d3cecd',
-			progressColor: '#005cc8',
+			waveColor: '#ffffff',
+			progressColor: '#3afa66',
 			url: audioUrl,
 			dragToSeek: true,
 			barHeight: 5,
@@ -246,7 +246,7 @@
 	<div id="waveform" class="w-full"></div>
 
 	<!-- Media Controls -->
-	<div class="flex items-center w-full sm:w-96 bg-gray-100 px-4 py-2 rounded-lg mt-10 shadow-md">
+	<div class="flex items-center w-full sm:w-96 bg-white px-4 py-2 rounded-lg mt-10 mb-3 shadow-md">
 		<!-- Skip Backward Button -->
 		<button onclick={skipBackward} class="text-gray-700 hover:text-gray-900 text-xl mr-1">
 			<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faBackward} />
@@ -289,7 +289,7 @@
 	<!-- Region Controls -->
 	<div class="flex flex-col items-center w-full sm:w-96 rounded-lg mt-2">
 		<!-- Action Buttons -->
-		<div class="mb-2">
+		<div class="mb-3">
 			<button
 				onclick={addRegion}
 				class="bg-blue-500 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 rounded"
