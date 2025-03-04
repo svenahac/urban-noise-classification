@@ -9,16 +9,20 @@
 		faPause,
 		faVolumeHigh
 	} from '@fortawesome/free-solid-svg-icons';
-	import { faBluesky } from '@fortawesome/free-brands-svg-icons';
+	import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
+	import RegionCard from './RegionCard.svelte';
 
 	export let url: string; // Audio URL passed as a prop
 
 	let ws: WaveSurfer;
+	let regions: any; // Declare regions as any type for now
 	let isPlaying = false;
 	let volume = 1; // Default volume (1 = 100%)
 	let currentTime = '0:00.000';
 	let duration = '0:00.000';
 	const skipAmount = 0.05; // Skip 1/20th of a second
+	const random = (min: number, max: number) => Math.random() * (max - min) + min;
+	const randomColor = () => `rgba(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)}, 0.5)`;
 
 	// Format time helper function (adds milliseconds)
 	function formatTime(seconds: number) {
@@ -68,36 +72,57 @@
 		}
 	}
 
+	// Add Region Function
+	function addRegion() {
+		if (ws) {
+			const start = ws.getCurrentTime(); // Get the current time position
+			const end = start + 2; // Set the region to last for 2 seconds
+
+			regions.addRegion({
+				id: `region-${start}`, // Unique ID based on start time
+				start: start,
+				end: end,
+				color: randomColor(), // Random color for the region
+				drag: true, // Allow dragging the region
+				resize: true // Allow resizing the region
+			});
+		}
+	}
+
 	onMount(() => {
+		// Create the WaveSurfer instance first
 		ws = WaveSurfer.create({
 			container: '#waveform',
 			waveColor: '#d3cecd',
 			progressColor: '#005cc8',
 			url: url,
 			dragToSeek: true,
-			height: 50
+			height: 50,
+			plugins: [] // Initialize without regions plugin for now
 		});
 
-		// Update time when the audio is ready
+		// Initialize the regions plugin and attach it to WaveSurfer after it is created
+		regions = RegionsPlugin.create(); // Initialize regions plugin
+		ws.registerPlugin(regions); // Add regions plugin after WaveSurfer is created
+
+		// Handle events after the audio is ready
 		ws.on('ready', () => {
 			duration = formatTime(ws.getDuration());
 			updateTime();
 		});
 
-		// Update time while playing
+		// Update time during playback
 		ws.on('audioprocess', updateTime);
-
-		// Update time when user seeks manually
 		ws.on('seeking', updateTime);
 	});
 </script>
 
-<div class="flex flex-col items-center w-full max-w-xs sm:max-w-xl">
+<div class="flex flex-col items-center w-full min-h-screen max-w-xs sm:max-w-xl">
 	<!-- Waveform Display -->
-	<div id="waveform" class="w-full bg-blue-500 rounded-md"></div>
+	<div id="waveform" class="w-full"></div>
 
 	<!-- Media Controls -->
-	<div class="flex items-center w-full sm:w-96 bg-gray-100 px-4 py-2 rounded-lg mt-10">
+	<div class="flex items-center w-full sm:w-96 bg-gray-100 px-4 py-2 rounded-lg mt-10 shadow-md">
 		<!-- Skip Backward Button -->
 		<button on:click={skipBackward} class="text-gray-700 hover:text-gray-900 text-xl mr-1">
 			<FontAwesomeIcon class="text-blue-500 hover:text-blue-700" icon={faBackward} />
@@ -118,11 +143,10 @@
 		</button>
 
 		<!-- Time Display -->
-		<span class="text-gray-700 text-sm ml-3">{currentTime} / {duration}</span>
+		<span class="text-gray-700 text-xs ml-2 sm:text-sm sm:ml-3">{currentTime} / {duration}</span>
 
 		<!-- Spacer -->
 		<div class="flex-grow"></div>
-
 		<!-- Volume Icon & Control -->
 		<button class="text-gray-700 hover:text-gray-900 mr-2 text-lg">
 			<FontAwesomeIcon class="text-blue-500" icon={faVolumeHigh} />
@@ -139,12 +163,14 @@
 	</div>
 
 	<!-- Region Controls -->
-	<div class="flex items-center w-full sm:w-96 rounded-lg mt-2">
+	<div class="flex flex-col items-center w-full sm:w-96 rounded-lg mt-2">
 		<!-- Add Region Button -->
 		<button
-			class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-2 rounded"
+			on:click={addRegion}
+			class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-2 mb-2 rounded"
 		>
 			Add Region
 		</button>
+		<RegionCard />
 	</div>
 </div>
