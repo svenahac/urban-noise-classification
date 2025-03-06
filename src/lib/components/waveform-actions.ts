@@ -36,6 +36,12 @@ export function initWaveSurfer(
 	ws.on('audioprocess', () => updateTime(ws, onTimeUpdate));
 	ws.on('seeking', () => updateTime(ws, onTimeUpdate));
 
+	ws.on('finish', () => {
+		ws.setTime(0); // Set time back to the beginning
+		ws.play(); // Start playing again
+		updateTime(ws, onTimeUpdate);
+	});
+
 	return { ws, regions };
 }
 
@@ -48,7 +54,7 @@ export function updateTime(ws: WaveSurfer, onTimeUpdate: (time: string) => void)
 export function togglePlay(ws: WaveSurfer, setIsPlaying: (value: boolean) => void) {
 	if (ws) {
 		ws.playPause();
-		setIsPlaying(!ws.isPlaying());
+		setIsPlaying(ws.isPlaying());
 	}
 }
 
