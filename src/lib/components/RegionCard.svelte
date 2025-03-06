@@ -1,19 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import classesJsonUrl from '$lib/assets/audio-classes.json?url';
+	import { formatTime } from './utils';
 
 	let { region, onDelete, onAnnotationChange } = $props();
 	let audioClasses = $state<{ name: string }[]>([]);
 	let selectedAnnotation = $state(region.annotation);
 	let searchTerm = $state('');
 	let isDropdownOpen = $state(false);
-
-	function formatTime(seconds: number) {
-		const min = Math.floor(seconds / 60);
-		const sec = Math.floor(seconds % 60);
-		const ms = Math.floor((seconds % 1) * 1000);
-		return `${min}:${sec < 10 ? '0' : ''}${sec}.${ms.toString().padStart(3, '0')}`;
-	}
 
 	// Load the audio classes from the JSON file
 	onMount(async () => {
