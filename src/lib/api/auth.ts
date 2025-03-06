@@ -31,15 +31,7 @@ const authApi = {
 	 * Login a user with username and password
 	 */
 	login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-		const response = await api.post<LoginResponse>('/login', credentials);
-		return response.data;
-	},
-
-	/**
-	 * Register a new user
-	 */
-	register: async (userData: LoginRequest): Promise<LoginResponse> => {
-		const response = await api.post<LoginResponse>('/register', userData);
+		const response = await api.post<LoginResponse>('/auth/login', credentials);
 		return response.data;
 	},
 
@@ -48,7 +40,7 @@ const authApi = {
 	 */
 	verifyToken: async (): Promise<boolean> => {
 		try {
-			await api.get('/protected');
+			await api.get('/auth/protected');
 			return true;
 		} catch (error) {
 			return false;
