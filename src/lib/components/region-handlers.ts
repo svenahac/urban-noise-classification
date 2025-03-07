@@ -3,8 +3,9 @@ import type { RegionType, AnnotationData } from '$lib/types';
 import { randomColor } from './utils';
 import WaveSurfer from 'wavesurfer.js';
 import { initWaveSurfer } from './waveform-actions';
-
+import axios from 'axios';
 import { env } from '$env/dynamic/public';
+import { userStore } from '../../stores/userStore';
 
 const API_URL = env.PUBLIC_API_URL;
 
@@ -56,8 +57,6 @@ export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[
 	return regionsList;
 }
 
-import axios from 'axios';
-
 export async function loadNewClip(
 	ws: WaveSurfer,
 	regions: any,
@@ -102,7 +101,13 @@ export async function loadNewClip(
 
 	try {
 		// Send annotation data to the backend
-		await axios.post(API_URL + '/annotation', annotationData);
+		const token = localStorage.getItem('token');
+		console.log('token:', token);
+		await axios.post(API_URL + '/annotation', annotationData, {
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
 
 		// If successfully saved, then load the next clip
 		let newaudioUrl = await getRandomAudioClip(false);
