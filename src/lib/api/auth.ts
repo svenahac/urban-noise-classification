@@ -12,7 +12,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
 	message: string;
-	userId: number;
+	userId: string;
 	token: string;
 }
 
@@ -57,7 +57,7 @@ const authApi = {
 
 			if (browser) {
 				localStorage.setItem('auth_token', token);
-				localStorage.setItem('user_id', userId.toString());
+				localStorage.setItem('user_id', userId);
 				localStorage.setItem('username', username);
 			}
 

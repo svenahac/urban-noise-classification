@@ -21,7 +21,12 @@
 		updateTime,
 		initWaveSurfer
 	} from './waveform-actions';
-	import { addRegion, updateRegionAnnotation, loadNewClip } from './region-handlers';
+	import {
+		addRegion,
+		updateRegionAnnotation,
+		updateRegionComment,
+		loadNewClip
+	} from './region-handlers';
 	import { goto } from '$app/navigation';
 	import authApi from '$lib/api/auth';
 	import { userStore } from '../../stores/userStore';
@@ -222,8 +227,14 @@
 		{#each regionsList as region (region.id)}
 			<RegionCard
 				{region}
-				onAnnotationChange={(id: string, annotation: string) => {
+				onAnnotationChange={(id: string, annotation: string, comment: string) => {
+					// Update both annotation and comment
 					regionsList = updateRegionAnnotation(regionsList, id, annotation);
+
+					// If you've implemented the updateRegionComment function
+					if (comment !== undefined) {
+						regionsList = updateRegionComment(regionsList, id, comment);
+					}
 				}}
 				onDelete={(e: string) => {
 					regionsList = regionsList.filter((r) => r.id !== e);

@@ -16,6 +16,14 @@ export function updateRegionAnnotation(
 	return regionsList.map((region) => (region.id === regionId ? { ...region, annotation } : region));
 }
 
+export function updateRegionComment(
+	regionsList: RegionType[],
+	regionId: string,
+	comment: string
+): RegionType[] {
+	return regionsList.map((region) => (region.id === regionId ? { ...region, comment } : region));
+}
+
 export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[]): RegionType[] {
 	if (ws) {
 		const start = ws.getCurrentTime();
@@ -32,7 +40,7 @@ export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[
 			resize: true
 		});
 
-		const newRegionsList = [...regionsList, { id, start, end, color, annotation: '' }];
+		const newRegionsList = [...regionsList, { id, start, end, color, annotation: '', comment: '' }];
 
 		region.on('remove', () => {
 			// This will be handled in the Waveform component
@@ -65,11 +73,13 @@ export async function loadNewClip(
 	onDurationSet: (duration: string) => void,
 	userId: string
 ) {
-	// Validate that all regions have annotations
-	const validRegions = regionsList.filter((region) => region.annotation.trim() !== '');
+	// Validate that all regions have either annotations or comments
+	const validRegions = regionsList.filter(
+		(region) => region.annotation?.trim() !== '' || region.comment?.trim() !== ''
+	);
 
 	if (validRegions.length !== regionsList.length) {
-		alert('Please select a class for each region.');
+		alert('Please provide either a class or comment for each region.');
 		return { ws, regions, regionsList, sessionAnnotations };
 	}
 
@@ -85,7 +95,8 @@ export async function loadNewClip(
 		annotations: validRegions.map((region) => ({
 			start: parseFloat(region.start.toFixed(6)),
 			end: parseFloat(region.end.toFixed(6)),
-			annotation: region.annotation
+			annotation: region.annotation || '',
+			comment: region.comment || ''
 		}))
 	};
 
