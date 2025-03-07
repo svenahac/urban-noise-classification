@@ -6,6 +6,7 @@ import { initWaveSurfer } from './waveform-actions';
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
 import { userStore } from '../../stores/userStore';
+import authApi from '$lib/api/auth';
 
 const API_URL = env.PUBLIC_API_URL;
 
@@ -100,14 +101,11 @@ export async function loadNewClip(
 	};
 
 	try {
-		// Send annotation data to the backend
-		const token = localStorage.getItem('token');
-		console.log('token:', token);
-		await axios.post(API_URL + '/annotation', annotationData, {
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
-		});
+		const isTokenValid = await authApi.verifyToken();
+
+		if (isTokenValid) {
+			await axios.post(API_URL + '/annotation', annotationData);
+		}
 
 		// If successfully saved, then load the next clip
 		let newaudioUrl = await getRandomAudioClip(false);
