@@ -21,9 +21,10 @@
 		updateTime,
 		initWaveSurfer
 	} from './waveform-actions';
-	import { addRegion, updateRegionAnnotation, loadNewClip, finishSession } from './region-handlers';
+	import { addRegion, updateRegionAnnotation, loadNewClip } from './region-handlers';
 	import { goto } from '$app/navigation';
 	import authApi from '$lib/api/auth';
+	import { userStore } from '../../stores/userStore';
 	let { url = undefined } = $props();
 	let ws: WaveSurfer;
 	let regions: any;
@@ -35,7 +36,13 @@
 	let duration = $state('0:00.000');
 	let regionsList = $state<RegionType[]>([]);
 	let currentAudioUrl = $state(url);
+	let currentAudioId = $state('');
 	let sessionAnnotations = $state<AnnotationData[]>([]);
+
+	let userId = $state('user');
+	userStore.subscribe((user) => {
+		userId = user?.userId ?? '';
+	});
 
 	// State update handlers
 	function setIsPlaying(value: boolean) {
@@ -52,6 +59,10 @@
 
 	function setCurrentAudioUrl(url: string) {
 		currentAudioUrl = url;
+	}
+
+	function setCurrentAudioId(id: string) {
+		currentAudioId = id;
 	}
 
 	// Region handlers
@@ -88,14 +99,16 @@
 			ws,
 			regions,
 			regionsList,
-			currentAudioUrl,
+			currentAudioId,
 			sessionAnnotations,
 			setCurrentAudioUrl,
+			setCurrentAudioId,
 			setCurrentTime,
 			setDuration,
 			setIsPlaying,
 			setCurrentTime,
-			setDuration
+			setDuration,
+			userId
 		);
 
 		if (result) {
@@ -106,11 +119,6 @@
 		}
 	}
 
-	function handleFinishSession() {
-		sessionAnnotations = finishSession(sessionAnnotations);
-		handleLogout();
-	}
-
 	function handleLogout() {
 		authApi.handleLogout();
 		goto('/');
@@ -118,15 +126,16 @@
 
 	onMount(async () => {
 		// If url is not provided, get a random audio clip
+
 		let audioUrl = url;
 		if (!audioUrl) {
-			audioUrl = await getRandomAudioClip();
+			audioUrl = await getRandomAudioClip(false);
 		}
 
-		currentAudioUrl = audioUrl;
-
+		currentAudioUrl = audioUrl.url;
+		currentAudioId = audioUrl.id;
 		// Initialize WaveSurfer
-		const waveform = initWaveSurfer(audioUrl, setCurrentTime, setDuration);
+		const waveform = initWaveSurfer(currentAudioUrl, setCurrentTime, setDuration);
 		ws = waveform.ws;
 		regions = waveform.regions;
 	});
@@ -203,10 +212,10 @@
 				Load New Clip
 			</button>
 			<button
-				onclick={handleFinishSession}
+				onclick={handleLogout}
 				class="bg-red-500 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold py-1 px-2 rounded"
 			>
-				Finish Session
+				Logout
 			</button>
 		</div>
 

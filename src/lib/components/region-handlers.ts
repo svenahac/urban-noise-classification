@@ -4,6 +4,10 @@ import { randomColor } from './utils';
 import WaveSurfer from 'wavesurfer.js';
 import { initWaveSurfer } from './waveform-actions';
 
+import { env } from '$env/dynamic/public';
+
+const API_URL = env.PUBLIC_API_URL;
+
 export function updateRegionAnnotation(
 	regionsList: RegionType[],
 	regionId: string,
@@ -44,18 +48,22 @@ export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[
 	return regionsList;
 }
 
+import axios from 'axios';
+
 export async function loadNewClip(
 	ws: WaveSurfer,
 	regions: any,
 	regionsList: RegionType[],
-	currentAudioUrl: string,
+	currentAudioId: string,
 	sessionAnnotations: AnnotationData[],
 	setCurrentAudioUrl: (url: string) => void,
+	setCurrentAudioId: (id: string) => void,
 	setCurrentTime: (time: string) => void,
 	setDuration: (duration: string) => void,
 	setIsPlaying: (isPlaying: boolean) => void,
 	onTimeUpdate: (time: string) => void,
-	onDurationSet: (duration: string) => void
+	onDurationSet: (duration: string) => void,
+	userId: string
 ) {
 	// Validate that all regions have annotations
 	const validRegions = regionsList.filter((region) => region.annotation.trim() !== '');
@@ -72,7 +80,8 @@ export async function loadNewClip(
 
 	// Prepare the JSON structure
 	const annotationData: AnnotationData = {
-		audio_url: currentAudioUrl,
+		audioFileId: currentAudioId,
+		annotatedBy: userId,
 		annotations: validRegions.map((region) => ({
 			start: parseFloat(region.start.toFixed(6)),
 			end: parseFloat(region.end.toFixed(6)),
@@ -80,69 +89,45 @@ export async function loadNewClip(
 		}))
 	};
 
-	// Add to session annotations
-	const newSessionAnnotations = [...sessionAnnotations, annotationData];
-
 	try {
-		// Load next clip
-		const nextClip = await getRandomAudioClip();
-		if (nextClip) {
+		// Send annotation data to the backend
+		await axios.post(API_URL + '/annotation', annotationData);
+
+		// If successfully saved, then load the next clip
+		let newaudioUrl = await getRandomAudioClip(false);
+
+		if (newaudioUrl && newaudioUrl.url) {
 			// Destroy existing wavesurfer instance
 			ws.destroy();
 
 			// Reset state
-			setCurrentAudioUrl(nextClip);
+			setCurrentAudioUrl(newaudioUrl.url);
+			setCurrentAudioId(newaudioUrl.id);
 			setIsPlaying(false);
 			setCurrentTime('0:00.000');
 			setDuration('0:00.000');
 
 			// Recreate wavesurfer instance with new audio
 			const { ws: newWs, regions: newRegions } = initWaveSurfer(
-				nextClip,
+				newaudioUrl.url,
 				onTimeUpdate,
 				onDurationSet
 			);
+
+			// Keep existing session annotations (not adding the new one since it's saved to DB)
 			return {
 				ws: newWs,
 				regions: newRegions,
 				regionsList: [],
-				sessionAnnotations: newSessionAnnotations
+				sessionAnnotations: sessionAnnotations
 			};
+		} else {
+			alert('No more unannotated audio clips available.');
+			return { ws, regions, regionsList, sessionAnnotations };
 		}
 	} catch (error) {
-		console.error('Error loading next clip:', error);
-		alert('Failed to load next audio clip.');
-	}
-
-	return { ws, regions, regionsList, sessionAnnotations };
-}
-
-export function finishSession(sessionAnnotations: AnnotationData[]): AnnotationData[] {
-	if (sessionAnnotations.length === 0) {
-		alert('No annotations to download.');
-		return sessionAnnotations;
-	}
-
-	try {
-		// Generate and download JSON file with all session annotations
-		const jsonBlob = new Blob([JSON.stringify(sessionAnnotations, null, 2)], {
-			type: 'application/json'
-		});
-		const jsonUrl = URL.createObjectURL(jsonBlob);
-
-		// Create a temporary link to download the file
-		const link = document.createElement('a');
-		link.href = jsonUrl;
-		link.download = `session_annotations_${Date.now()}.json`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-
-		alert('Session annotations downloaded successfully!');
-		return [];
-	} catch (error) {
-		console.error('Error generating session JSON:', error);
-		alert('Failed to generate session annotation file.');
-		return sessionAnnotations;
+		console.error('Error saving annotation or loading next clip:', error);
+		alert('Failed to save annotations or load next audio clip.');
+		return { ws, regions, regionsList, sessionAnnotations };
 	}
 }

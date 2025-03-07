@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import classesJsonUrl from '$lib/assets/audio-classes.json?url';
 	import { formatTime } from './utils';
+	import axios from 'axios';
+	import { env } from '$env/dynamic/public';
+
+	const API_URL = env.PUBLIC_API_URL;
 
 	let { region, onDelete, onAnnotationChange } = $props();
 	let audioClasses = $state<{ name: string }[]>([]);
@@ -9,10 +12,15 @@
 	let searchTerm = $state('');
 	let isDropdownOpen = $state(false);
 
-	// Load the audio classes from the JSON file
+	// Load the audio classes using axios
 	onMount(async () => {
-		const response = await fetch(classesJsonUrl);
-		audioClasses = await response.json();
+		try {
+			const response = await axios.get(API_URL + '/classes/');
+			audioClasses = response.data;
+		} catch (error) {
+			console.error('Error fetching audio classes:', error);
+			audioClasses = [];
+		}
 	});
 
 	function handleAnnotationChange(className: string) {

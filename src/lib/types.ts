@@ -7,10 +7,19 @@ export type RegionType = {
 };
 
 export type AnnotationData = {
-	audio_url: string;
+	audioFileId: string;
+	annotatedBy: string;
 	annotations: {
 		start: number;
 		end: number;
 		annotation: string;
 	}[];
 };
+
+export interface AudioFileMetadata {
+	id: string;
+	filePath?: string;
+	fileName?: string;
+	fileUrl: string;
+	annotated: boolean;
+}

@@ -4,7 +4,7 @@ import { browser } from '$app/environment';
 
 // Types
 type UserState = {
-	userId: number | null;
+	userId: string | null;
 	username: string | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
@@ -29,7 +29,7 @@ function createUserStore() {
 
 		if (token && userId && username) {
 			set({
-				userId: parseInt(userId),
+				userId,
 				username,
 				isAuthenticated: true,
 				isLoading: false
@@ -43,7 +43,7 @@ function createUserStore() {
 		subscribe,
 
 		// Set user data
-		setUser: (userData: { userId: number; username: string; isAuthenticated: boolean }) => {
+		setUser: (userData: { userId: string; username: string; isAuthenticated: boolean }) => {
 			set({
 				...userData,
 				isLoading: false
