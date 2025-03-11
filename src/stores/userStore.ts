@@ -6,6 +6,7 @@ import { browser } from '$app/environment';
 type UserState = {
 	userId: string | null;
 	username: string | null;
+	token: string | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
 };
@@ -14,6 +15,7 @@ type UserState = {
 const initialState: UserState = {
 	userId: null,
 	username: null,
+	token: null,
 	isAuthenticated: false,
 	isLoading: true
 };
@@ -31,6 +33,7 @@ function createUserStore() {
 			set({
 				userId,
 				username,
+				token,
 				isAuthenticated: true,
 				isLoading: false
 			});
@@ -43,7 +46,12 @@ function createUserStore() {
 		subscribe,
 
 		// Set user data
-		setUser: (userData: { userId: string; username: string; isAuthenticated: boolean }) => {
+		setUser: (userData: {
+			userId: string;
+			username: string;
+			token: string;
+			isAuthenticated: boolean;
+		}) => {
 			set({
 				...userData,
 				isLoading: false

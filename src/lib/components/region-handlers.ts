@@ -10,6 +10,12 @@ import authApi from '$lib/api/auth';
 
 const API_URL = env.PUBLIC_API_URL;
 
+/*
+let userToken: string | null = null;
+const unsubscribe = userStore.subscribe((userState: { token: string | null }) => {
+	userToken = userState.token;
+});
+*/
 export function updateRegionAnnotation(
 	regionsList: RegionType[],
 	regionId: string,
@@ -100,12 +106,17 @@ export async function loadNewClip(
 		}))
 	};
 
-	try {
-		const isTokenValid = await authApi.verifyToken();
+	let token: string | null = null;
+	userStore.subscribe((value) => {
+		token = value.token;
+	})();
 
-		if (isTokenValid) {
-			await axios.post(API_URL + '/annotation', annotationData);
-		}
+	try {
+		const response = await axios.post(API_URL + '/annotation', annotationData, {
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
 
 		// If successfully saved, then load the next clip
 		let newaudioUrl = await getRandomAudioClip(false);
