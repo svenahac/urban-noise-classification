@@ -108,7 +108,7 @@ export async function loadNewClip(
 
 	let token: string | null = null;
 	userStore.subscribe((value) => {
-		token = value.token;
+		token = value.token || localStorage.getItem('auth_token');
 	})();
 
 	try {
