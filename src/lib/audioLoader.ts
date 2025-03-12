@@ -1,28 +1,35 @@
-// src/lib/audioLoader.ts
-import { browser } from '$app/environment';
+import axios from 'axios';
+import { env } from '$env/dynamic/public';
 
-export async function getRandomAudioClip(): Promise<string> {
-	if (!browser) return ''; // Return empty string if not in browser environment
+// Define your API endpoint for audio files
+const API_URL = env.PUBLIC_API_URL; // Ensure this is correctly defined
 
+export async function getRandomAudioClip(annotated?: boolean): Promise<any> {
 	try {
-		// Use Vite's import.meta.glob to get all audio files in the directory
-		const audioModules = import.meta.glob('/src/lib/assets/audio-examples/*.wav');
-		const audioFiles = Object.keys(audioModules);
+		let url = `${API_URL}/clip/random/file`;
 
-		if (audioFiles.length === 0) {
-			console.error('No audio files found in the directory');
-			return '';
+		// Add query parameter if annotated filter is specified
+		if (annotated !== undefined) {
+			url += `?annotated=${annotated}`;
 		}
 
-		// Select a random audio file
-		const randomIndex = Math.floor(Math.random() * audioFiles.length);
-		const randomAudioPath = audioFiles[randomIndex];
+		// Make the request with Axios
+		const response = await axios.get(url, {
+			responseType: 'blob' // Ensures the audio file is treated as a binary stream
+		});
 
-		// Dynamically import the audio file
-		const audioModule = await audioModules[randomAudioPath]();
-		return (audioModule as { default: string }).default;
+		// Extract headers
+		const headers = response.headers;
+
+		// Extract metadata from headers
+		return {
+			id: headers['x-audio-id'], // Headers are case insensitive, but use lowercase for safety
+			url: URL.createObjectURL(response.data), // Create an object URL for the file
+			filePath: headers['x-audio-filepath'],
+			annotated: headers['x-audio-annotated'] === 'true' // Convert string to boolean
+		};
 	} catch (error) {
-		console.error('Error loading random audio clip:', error);
-		return '';
+		console.error('Error fetching random audio clip:', error);
+		throw new Error('Failed to fetch audio clip');
 	}
 }

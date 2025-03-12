@@ -9,8 +9,8 @@ Once you've created a project and installed dependencies with `npm install` (or 
 ```bash
 pnpm run dev
 
-# or start the server and open the app in a new browser tab
-pnpm run dev -- --open
+# or start the server on the network
+pnpm run dev --host
 ```
 
 ## Building
