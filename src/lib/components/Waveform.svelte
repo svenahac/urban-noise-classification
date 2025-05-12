@@ -130,7 +130,7 @@
 	}
 
 	onMount(async () => {
-		// If url is not provided, get a random audio clip
+		// If url is not provided, get a random audio clip!
 
 		let audioUrl = url;
 		if (!audioUrl) {
