@@ -119,7 +119,7 @@ export async function loadNewClip(
 		});
 
 		// If successfully saved, then load the next clip
-		let newaudioUrl = await getRandomAudioClip(false);
+		let newaudioUrl = await getRandomAudioClip(userId);
 
 		if (newaudioUrl && newaudioUrl.url) {
 			// Destroy existing wavesurfer instance

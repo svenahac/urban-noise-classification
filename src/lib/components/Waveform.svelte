@@ -134,7 +134,7 @@
 
 		let audioUrl = url;
 		if (!audioUrl) {
-			audioUrl = await getRandomAudioClip(false);
+			audioUrl = await getRandomAudioClip(userId);
 		}
 
 		currentAudioUrl = audioUrl.url;
