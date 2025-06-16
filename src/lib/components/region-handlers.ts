@@ -7,8 +7,21 @@ import axios from 'axios';
 import { env } from '$env/dynamic/public';
 import { userStore } from '../../stores/userStore';
 import authApi from '$lib/api/auth';
+import { mouseTrackingStore } from '$lib/stores/mouseTrackingStore';
 
 const API_URL = env.PUBLIC_API_URL;
+
+interface AIRegion {
+	start: number;
+	end: number;
+	annotation: string;
+}
+
+interface MousePosition {
+	x: number;
+	y: number;
+	timestamp: number;
+}
 
 /*
 let userToken: string | null = null;
@@ -22,14 +35,6 @@ export function updateRegionAnnotation(
 	annotation: string
 ): RegionType[] {
 	return regionsList.map((region) => (region.id === regionId ? { ...region, annotation } : region));
-}
-
-export function updateRegionComment(
-	regionsList: RegionType[],
-	regionId: string,
-	comment: string
-): RegionType[] {
-	return regionsList.map((region) => (region.id === regionId ? { ...region, comment } : region));
 }
 
 export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[]): RegionType[] {
@@ -48,7 +53,7 @@ export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[
 			resize: true
 		});
 
-		const newRegionsList = [...regionsList, { id, start, end, color, annotation: '', comment: '' }];
+		const newRegionsList = [...regionsList, { id, start, end, color, annotation: '' }];
 
 		region.on('remove', () => {
 			// This will be handled in the Waveform component
@@ -60,6 +65,46 @@ export function addRegion(ws: WaveSurfer, regions: any, regionsList: RegionType[
 
 		return newRegionsList;
 	}
+
+	return regionsList;
+}
+
+export function createAIRegions(ws: WaveSurfer, regions: any, aiRegions: AIRegion[]): RegionType[] {
+	const regionsList: RegionType[] = [];
+	
+	aiRegions.forEach((aiRegion) => {
+		const color = randomColor();
+		const id = `region-${Date.now()}-${Math.random()}`;
+
+		try {
+			const region = regions.addRegion({
+				id: id,
+				start: aiRegion.start,
+				end: aiRegion.end,
+				color: color,
+				drag: true,
+				resize: true
+			});
+
+			regionsList.push({
+				id,
+				start: aiRegion.start,
+				end: aiRegion.end,
+				color,
+				annotation: aiRegion.annotation
+			});
+
+			region.on('remove', () => {
+				// This will be handled in the Waveform component
+			});
+
+			region.on('update-end', () => {
+				// This will be handled in the Waveform component
+			});
+		} catch (error) {
+			console.error('Error creating region:', error);
+		}
+	});
 
 	return regionsList;
 }
@@ -77,15 +122,20 @@ export async function loadNewClip(
 	setIsPlaying: (isPlaying: boolean) => void,
 	onTimeUpdate: (time: string) => void,
 	onDurationSet: (duration: string) => void,
-	userId: string
+	userId: string,
+	labelingStartTime: number | null,
+	aiClasses: any[],
+	aiRegions: any[],
+	interfaceVersion: number,
+	mouseTracking: any
 ) {
 	// Validate that all regions have either annotations or comments
 	const validRegions = regionsList.filter(
-		(region) => region.annotation?.trim() !== '' || region.comment?.trim() !== ''
+		(region) => region.annotation?.trim() !== '' 
 	);
 
 	if (validRegions.length !== regionsList.length) {
-		alert('Please provide either a class or comment for each region.');
+		alert('Please provide a class for each region.');
 		return { ws, regions, regionsList, sessionAnnotations };
 	}
 
@@ -94,6 +144,32 @@ export async function loadNewClip(
 		return { ws, regions, regionsList, sessionAnnotations };
 	}
 
+	// Calculate labeling time in seconds
+	const labelingTime = labelingStartTime ? (Date.now() - labelingStartTime) / 1000 : 0;
+
+	// Get mouse tracking data
+	let mouseTrackingData = {
+		mousePath: [] as MousePosition[],
+		hoverDurations: {} as Record<string, number>,
+		aiHoverCount: 0,
+		clickDelays: [] as number[],
+		fileLoadTime: null as number | null
+	};
+	mouseTracking.subscribe((data: any) => {
+		mouseTrackingData = {
+			mousePath: data.mousePath,
+			hoverDurations: data.hoverDurations,
+			aiHoverCount: data.aiHoverCount,
+			clickDelays: data.clickDelays,
+			fileLoadTime: data.fileLoadTime
+		};
+	})();
+
+	// Calculate click delays relative to file load time
+	const clickDelays = mouseTrackingData.fileLoadTime 
+		? mouseTrackingData.clickDelays.map(timestamp => (timestamp - mouseTrackingData.fileLoadTime!) / 1000)
+		: [];
+
 	// Prepare the JSON structure
 	const annotationData: AnnotationData = {
 		audioFileId: currentAudioId,
@@ -101,9 +177,16 @@ export async function loadNewClip(
 		annotations: validRegions.map((region) => ({
 			start: parseFloat(region.start.toFixed(6)),
 			end: parseFloat(region.end.toFixed(6)),
-			annotation: region.annotation || '',
-			comment: region.comment || ''
-		}))
+			annotation: region.annotation || ''
+		})),
+		aiClasses: aiClasses || [],
+		aiAnnotations: aiRegions || [],
+		interfaceVersion: interfaceVersion || 0,
+		labelingTime: labelingTime || 0,
+		mousePath: mouseTrackingData.mousePath,
+		hoverDurations: mouseTrackingData.hoverDurations,
+		aiHoverCount: mouseTrackingData.aiHoverCount,
+		clickDelays: clickDelays
 	};
 
 	let token: string | null = null;
@@ -120,7 +203,6 @@ export async function loadNewClip(
 
 		// If successfully saved, then load the next clip
 		let newaudioUrl = await getRandomAudioClip(userId);
-
 		if (newaudioUrl && newaudioUrl.url) {
 			// Destroy existing wavesurfer instance
 			ws.destroy();

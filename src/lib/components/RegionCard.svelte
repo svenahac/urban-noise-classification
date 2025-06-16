@@ -3,194 +3,72 @@
 	import axios from 'axios';
 	import { formatTime } from './utils';
 	import { env } from '$env/dynamic/public';
+	import { mouseTrackingStore } from '$lib/stores/mouseTrackingStore';
 
-	let { region, onDelete, onAnnotationChange } = $props();
-	let audioClasses = $state<{ name: string }[]>([]);
+	let { region, onDelete, onAnnotationChange, onClick, isAIClass = false } = $props();
 	let selectedAnnotation = $state(region.annotation);
-	let searchTerm = $state('');
-	let isDropdownOpen = $state(false);
-	let comment = $state(region.comment || '');
 	const API_URL = env.PUBLIC_API_URL;
 
-	// Load the audio classes from the JSON file
-	onMount(async () => {
-		try {
-			const response = await axios.get(API_URL + '/classes');
-			audioClasses = response.data;
-		} catch (error) {
-			console.error('Error fetching audio classes:', error);
-			audioClasses = [];
-		}
+	// Update selectedAnnotation when region.annotation changes
+	$effect(() => {
+		selectedAnnotation = region.annotation;
 	});
 
 	function handleAnnotationChange(className: string) {
 		selectedAnnotation = className;
-		onAnnotationChange(region.id, selectedAnnotation, comment);
-
-		// Reset search term and close dropdown
-		searchTerm = '';
-		isDropdownOpen = false;
+		onAnnotationChange(region.id, selectedAnnotation);
 	}
 
-	function handleCommentChange(e: Event) {
-		const target = e.target as HTMLTextAreaElement;
-		comment = target.value;
-		onAnnotationChange(region.id, selectedAnnotation, comment);
+	function handleMouseEnter() {
+		mouseTrackingStore.startHover(region.id, isAIClass);
 	}
 
-	function handleInputKeydown(e: KeyboardEvent) {
-		// Auto-select if there's exactly one match when Enter is pressed
-		if (e.key === 'Enter' && filteredClasses.length === 1) {
-			e.preventDefault();
-			handleAnnotationChange(filteredClasses[0].name);
-		}
+	function handleMouseLeave() {
+		mouseTrackingStore.endHover(region.id, isAIClass);
 	}
 
-	$effect(() => {
-		// Close dropdown when clicking outside
-		function handleClickOutside(event: MouseEvent) {
-			const dropdown = document.getElementById(`dropdown-${region.id}`);
-			if (dropdown && !dropdown.contains(event.target as Node)) {
-				isDropdownOpen = false;
-			}
-		}
+	function handleClick(e: MouseEvent) {
+		e.stopPropagation();
+		mouseTrackingStore.trackClick();
+		onClick?.();
+	}
 
-		if (isDropdownOpen) {
-			document.addEventListener('click', handleClickOutside);
-			return () => {
-				document.removeEventListener('click', handleClickOutside);
-			};
-		}
-	});
-
-	$effect(() => {
-		// Reset search when dropdown opens
-		if (isDropdownOpen) {
-			searchTerm = '';
-		}
-	});
-
-	// Correctly derived filtered classes
-	const filteredClasses = $derived(
-		audioClasses.filter(({ name }) => name.toLowerCase().includes(searchTerm.toLowerCase()))
-	);
+	function handleDelete(e: MouseEvent) {
+		e.stopPropagation();
+		mouseTrackingStore.trackClick();
+		onDelete(region.id);
+	}
 </script>
 
-<div
+<div 
+	class="relative group w-full max-w-[200px] mb-2 rounded-md shadow-lg p-0 flex items-center justify-between" 
 	style="background-color: {region.color};"
-	class="w-full sm:w-lg mb-2 rounded-md shadow-lg p-4 flex flex-col items-center justify-between gap-2"
+	onmouseenter={handleMouseEnter}
+	onmouseleave={handleMouseLeave}
+	role="button"
+	tabindex="0"
 >
-	<div class="w-full flex items-center justify-between gap-4">
-		<!-- Start Time -->
-		<div class="flex flex-col items-center w-1/5">
-			<label for="start" class="text-xs font-semibold text-white">Start:</label>
+	<!-- Delete button as X, only on hover -->
+	<button
+		type="button"
+		class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center z-20"
+		onclick={handleDelete}
+		aria-label="Delete"
+	>
+		×
+	</button>
+	<!-- Class display -->
+	<div class="flex flex-col items-center w-full relative"> 
+		<div class="w-full">
 			<input
-				id="start"
 				type="text"
+				class="w-full max-w-[200px] h-9 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm cursor-pointer"
+				value={selectedAnnotation || 'Select Class'}
 				readonly
-				class="w-full h-8 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm"
-				placeholder="0:00"
-				value={formatTime(region.start)}
+				onclick={handleClick}
 			/>
 		</div>
-
-		<!-- End Time -->
-		<div class="flex flex-col items-center w-1/5">
-			<label for="end" class="text-xs font-semibold text-white">End:</label>
-			<input
-				id="end"
-				type="text"
-				readonly
-				class="w-full h-8 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm"
-				placeholder="0:00"
-				value={formatTime(region.end)}
-			/>
-		</div>
-
-		<!-- Annotation -->
-		<div class="flex flex-col items-center w-2/5 relative" id={`dropdown-${region.id}`}>
-			<label for="annotation" class="text-xs font-semibold text-white">Class:</label>
-
-			<!-- Searchable Dropdown -->
-			<div class="w-full">
-				<input
-					type="text"
-					class="w-full max-w-[200px] h-9 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm cursor-pointer"
-					placeholder={selectedAnnotation || 'Select Class (optional)'}
-					bind:value={searchTerm}
-					onfocus={() => (isDropdownOpen = true)}
-					onkeydown={handleInputKeydown}
-				/>
-
-				{#if isDropdownOpen}
-					<ul
-						class="absolute z-10 max-w-32 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg mt-1"
-						role="listbox"
-					>
-						{#each filteredClasses as { name }}
-							<button
-								type="button"
-								role="option"
-								aria-selected={selectedAnnotation === name}
-								class="w-full text-left px-2 py-1 text-xs sm:text-sm hover:bg-gray-300 cursor-pointer {selectedAnnotation ===
-								name
-									? 'bg-gray-300'
-									: ''}"
-								onclick={() => handleAnnotationChange(name)}
-								onkeydown={(e) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										handleAnnotationChange(name);
-									}
-								}}
-							>
-								{name}
-							</button>
-						{:else}
-							<div class="px-2 py-1 text-xs text-gray-500">No classes found</div>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-		</div>
-
-		<!-- Buttons -->
-		<div class="flex flex-col items-center gap-0.5">
-			<button
-				type="button"
-				class="h-6 w-12 bg-red-500 hover:bg-red-700 text-white rounded-md font-semibold text-xs sm:text-sm"
-				onclick={() => {
-					onDelete(region.id);
-				}}
-			>
-				Delete
-			</button>
-		</div>
-	</div>
-
-	<!-- Comment Field -->
-	<div class="w-full mt-2">
-		<textarea
-			class="w-full h-16 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-800 focus:ring-white px-2 py-1 text-xs sm:text-sm"
-			placeholder="Add a comment (optional)"
-			bind:value={comment}
-			oninput={handleCommentChange}
-		></textarea>
 	</div>
 </div>
 
-<style>
-	/* Custom scrollbar for the dropdown */
-	ul::-webkit-scrollbar {
-		width: 6px;
-	}
-	ul::-webkit-scrollbar-track {
-		background: #f1f1f1;
-	}
-	ul::-webkit-scrollbar-thumb {
-		background: #888;
-		border-radius: 3px;
-	}
-	ul::-webkit-scrollbar-thumb:hover {
-		background: #555;
-	}
-</style>
+
