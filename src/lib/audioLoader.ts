@@ -18,7 +18,7 @@ interface AIRegion {
 
 export async function getRandomAudioClip(userId: string): Promise<any> {
 	try {
-		const url = `${API_URL}/clip/random/file?userId=${encodeURIComponent(userId)}`;
+		const url = `${API_URL}/clip/marko?userId=${encodeURIComponent(userId)}`;
 
 		// Make the request with Axios
 		const response = await axios.get(url, {
@@ -26,14 +26,13 @@ export async function getRandomAudioClip(userId: string): Promise<any> {
 		});
 		// Extract headers
 		const headers = response.headers;
-
+		console.log(headers);
 		// Get AI classes and interface value
 		const aiClassesStr = headers['x-ai-classes'];
 		const aiClasses = aiClassesStr ? JSON.parse(aiClassesStr) as AIClass[] : [];
 		const interfaceValue = parseInt(headers['x-ai-interface'] || '0');
 		const aiRegionsStr = headers['x-ai-regions'];
 		const aiRegions = aiRegionsStr ? JSON.parse(aiRegionsStr) as AIRegion[] : [];
-
 		// Initialize classes with default classes
 		let classes = defaultClasses.map(name => ({ name }));
 

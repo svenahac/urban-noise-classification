@@ -17,7 +17,7 @@ export function initWaveSurfer(
 		progressColor: '#3afa66',
 		url: audioUrl,
 		dragToSeek: true,
-		barHeight: 5,
+		barHeight: 2,
 		plugins: [],
 		sampleRate: 16000
 	});

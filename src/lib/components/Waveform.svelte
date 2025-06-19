@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { getRandomAudioClip } from '$lib/audioLoader';
 	import WaveSurfer from 'wavesurfer.js';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -59,6 +59,8 @@
 	userStore.subscribe((user) => {
 		userId = user?.userId ?? '';
 	});
+
+	let loading = $state(true);
 
 	// Add new class function
 	async function addNewClass(name: string) {
@@ -163,34 +165,86 @@
 	}
 
 	async function handleLoadNewClip() {
-		const result = await loadNewClip(
-			ws,
-			regions,
-			regionsList,
-			currentAudioId,
-			sessionAnnotations,
-			setCurrentAudioUrl,
-			setCurrentAudioId,
-			setCurrentTime,
-			setDuration,
-			setIsPlaying,
-			setCurrentTime,
-			setDuration,
-			userId,
-			labelingStartTime,
-			currentAudioData?.aiClasses || [],
-			currentAudioData?.aiRegions || [],
-			currentAudioData?.interface || 0,
-			mouseTrackingStore
+		// Validate regions before starting the loading process
+		const validRegions = regionsList.filter(
+			(region) => region.annotation?.trim() !== '' 
 		);
 
-		if (result) {
-			ws = result.ws;
-			regions = result.regions;
-			regionsList = result.regionsList;
-			sessionAnnotations = result.sessionAnnotations;
-			labelingStartTime = null; // Reset the labeling time
-			mouseTrackingStore.reset(); // Reset mouse tracking
+		if (validRegions.length !== regionsList.length) {
+			alert('Please provide a class for each region.');
+			return;
+		}
+
+		if (validRegions.length === 0) {
+			alert('Please add at least one region.');
+			return;
+		}
+
+		loading = true;
+
+		try {
+			const result = await loadNewClip(
+				ws,
+				regions,
+				validRegions,
+				currentAudioId,
+				sessionAnnotations,
+				setCurrentAudioUrl,
+				setCurrentAudioId,
+				setCurrentTime,
+				setDuration,
+				setIsPlaying,
+				setCurrentTime,
+				setDuration,
+				userId,
+				labelingStartTime,
+				currentAudioData?.aiClasses || [],
+				currentAudioData?.aiRegions || [],
+				currentAudioData?.interface || 0,
+				mouseTrackingStore
+			);
+
+			if (result) {
+				// Update state with new audio data
+				currentAudioUrl = result.audioUrl;
+				currentAudioId = result.audioId;
+				currentAudioData = {
+					aiClasses: result.aiClasses,
+					aiRegions: result.aiRegions,
+					interface: result.interface
+				};
+				sessionAnnotations = result.sessionAnnotations;
+				regionsList = [];
+				labelingStartTime = null;
+				mouseTrackingStore.reset();
+
+				// Reset playback state
+				setIsPlaying(false);
+				setCurrentTime('0:00.000');
+				setDuration('0:00.000');
+
+				// Wait for DOM update before initializing WaveSurfer
+				loading = false;
+				await tick();
+
+				// Initialize WaveSurfer
+				const waveform = initWaveSurfer(currentAudioUrl, setCurrentTime, setDuration);
+				ws = waveform.ws;
+				regions = waveform.regions;
+
+				// Wait for WaveSurfer to be ready
+				ws.on('ready', () => {
+					if (currentAudioData.interface === 2 && currentAudioData.aiRegions?.length > 0) {
+						regionsList = createAIRegions(ws, regions, currentAudioData.aiRegions);
+					}
+					mouseTrackingStore.setFileLoadTime();
+				});
+			} else {
+				loading = false;
+			}
+		} catch (error) {
+			console.error('Error loading new clip:', error);
+			loading = false;
 		}
 	}
 
@@ -225,7 +279,7 @@
 
 		// Load initial audio
 		(async () => {
-			// If url is not provided, get a random audio clip!
+			loading = true;
 			let audioUrl = url;
 			if (!audioUrl) {
 				audioUrl = await getRandomAudioClip(userId);
@@ -235,19 +289,19 @@
 			currentAudioId = audioUrl.id;
 			audioClasses = audioUrl.classes;
 			currentAudioData = audioUrl;
-			
+
+			loading = false;
+			await tick(); // Wait for DOM to update and #waveform to be present
+
 			// Initialize WaveSurfer
 			const waveform = initWaveSurfer(currentAudioUrl, setCurrentTime, setDuration);
 			ws = waveform.ws;
 			regions = waveform.regions;
 
-			// Wait for WaveSurfer to be ready before creating regions
 			ws.on('ready', () => {
-				// If interface is 2, create regions from AI regions
 				if (audioUrl.interface === 2 && audioUrl.aiRegions && audioUrl.aiRegions.length > 0) {
 					regionsList = createAIRegions(ws, regions, audioUrl.aiRegions);
 				}
-				// Set file load time when audio is ready
 				mouseTrackingStore.setFileLoadTime();
 			});
 		})();
@@ -259,6 +313,14 @@
 	});
 </script>
 
+{#if loading}
+<div class="absolute inset-0 flex flex-col items-center justify-center z-50 bg-gray-900 bg-opacity-80 min-h-screen w-full">
+	<div class="flex flex-col items-center">
+		<div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+		<span class="text-white text-lg font-semibold">Loading audio...</span>
+	</div>
+</div>
+{:else}
 <div class="flex flex-col items-center w-full max-w-xs sm:max-w-xl">
 	<!-- Waveform Display -->
 	<div 
@@ -451,3 +513,4 @@
 		background: #555;
 	}
 </style>
+{/if}

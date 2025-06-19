@@ -129,21 +129,6 @@ export async function loadNewClip(
 	interfaceVersion: number,
 	mouseTracking: any
 ) {
-	// Validate that all regions have either annotations or comments
-	const validRegions = regionsList.filter(
-		(region) => region.annotation?.trim() !== '' 
-	);
-
-	if (validRegions.length !== regionsList.length) {
-		alert('Please provide a class for each region.');
-		return { ws, regions, regionsList, sessionAnnotations };
-	}
-
-	if (validRegions.length === 0) {
-		alert('Please add at least one region.');
-		return { ws, regions, regionsList, sessionAnnotations };
-	}
-
 	// Calculate labeling time in seconds
 	const labelingTime = labelingStartTime ? (Date.now() - labelingStartTime) / 1000 : 0;
 
@@ -174,7 +159,7 @@ export async function loadNewClip(
 	const annotationData: AnnotationData = {
 		audioFileId: currentAudioId,
 		annotatedBy: userId,
-		annotations: validRegions.map((region) => ({
+		annotations: regionsList.map((region) => ({
 			start: parseFloat(region.start.toFixed(6)),
 			end: parseFloat(region.end.toFixed(6)),
 			annotation: region.annotation || ''
@@ -207,34 +192,22 @@ export async function loadNewClip(
 			// Destroy existing wavesurfer instance
 			ws.destroy();
 
-			// Reset state
-			setCurrentAudioUrl(newaudioUrl.url);
-			setCurrentAudioId(newaudioUrl.id);
-			setIsPlaying(false);
-			setCurrentTime('0:00.000');
-			setDuration('0:00.000');
-
-			// Recreate wavesurfer instance with new audio
-			const { ws: newWs, regions: newRegions } = initWaveSurfer(
-				newaudioUrl.url,
-				onTimeUpdate,
-				onDurationSet
-			);
-
-			// Keep existing session annotations (not adding the new one since it's saved to DB)
+			// Return the new audio data
 			return {
-				ws: newWs,
-				regions: newRegions,
-				regionsList: [],
+				audioUrl: newaudioUrl.url,
+				audioId: newaudioUrl.id,
+				aiClasses: newaudioUrl.aiClasses || [],
+				aiRegions: newaudioUrl.aiRegions || [],
+				interface: newaudioUrl.interface || 0,
 				sessionAnnotations: sessionAnnotations
 			};
 		} else {
 			alert('No more unannotated audio clips available.');
-			return { ws, regions, regionsList, sessionAnnotations };
+			return null;
 		}
 	} catch (error) {
 		console.error('Error saving annotation or loading next clip:', error);
 		alert('Failed to save annotations or load next audio clip.');
-		return { ws, regions, regionsList, sessionAnnotations };
+		return null;
 	}
 }
