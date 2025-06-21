@@ -7,6 +7,12 @@ export interface RegionType {
 	comment?: string; // Added comment field
 }
 
+export interface MousePosition {
+	x: number;
+	y: number;
+	timestamp: number;
+}
+
 export interface AnnotationData {
 	audioFileId: string;
 	annotatedBy: string;
@@ -14,9 +20,17 @@ export interface AnnotationData {
 		start: number;
 		end: number;
 		annotation: string;
-		comment?: string; // Added comment field
 	}[];
+	aiClasses: any[];
+	aiAnnotations: any[];
+	interfaceVersion: number;
+	labelingTime: number;
+	mousePath: MousePosition[];
+	hoverDurations: Record<string, number>;
+	aiHoverCount: number;
+	clickDelays: number[];
 }
+
 export interface AudioFileMetadata {
 	id: string;
 	filePath?: string;
