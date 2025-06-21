@@ -56,8 +56,10 @@
 	const API_URL = env.PUBLIC_API_URL;
 
 	let userId = $state('user');
+	let username = $state('');
 	userStore.subscribe((user) => {
 		userId = user?.userId ?? '';
+		username = user?.username ?? '';
 	});
 
 	let loading = $state(true);
@@ -197,6 +199,7 @@
 				setCurrentTime,
 				setDuration,
 				userId,
+				username,
 				labelingStartTime,
 				currentAudioData?.aiClasses || [],
 				currentAudioData?.aiRegions || [],
@@ -282,7 +285,7 @@
 			loading = true;
 			let audioUrl = url;
 			if (!audioUrl) {
-				audioUrl = await getRandomAudioClip(userId);
+				audioUrl = await getRandomAudioClip(userId, username);
 			}
 
 			currentAudioUrl = audioUrl.url;

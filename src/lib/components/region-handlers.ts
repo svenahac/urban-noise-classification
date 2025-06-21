@@ -123,6 +123,7 @@ export async function loadNewClip(
 	onTimeUpdate: (time: string) => void,
 	onDurationSet: (duration: string) => void,
 	userId: string,
+	username: string,
 	labelingStartTime: number | null,
 	aiClasses: any[],
 	aiRegions: any[],
@@ -187,7 +188,7 @@ export async function loadNewClip(
 		});
 
 		// If successfully saved, then load the next clip
-		let newaudioUrl = await getRandomAudioClip(userId);
+		let newaudioUrl = await getRandomAudioClip(userId, username);
 		if (newaudioUrl && newaudioUrl.url) {
 			// Destroy existing wavesurfer instance
 			ws.destroy();
