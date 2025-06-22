@@ -155,6 +155,28 @@
 		regionsList = regionsList.filter((r) => r.id !== regionId);
 	}
 
+	function handleRegionClick(regionId: string) {
+		selectedRegionId = regionId;
+		
+		// Bring the selected region to the top and highlight it
+		const selectedRegion = regions.getRegions().find((r: any) => r.id === regionId);
+		if (selectedRegion) {
+			// Bring to front by setting higher z-index
+			selectedRegion.element.style.zIndex = '1000';
+			// Add highlight effect
+			selectedRegion.element.style.boxShadow = '0 0 10px 2px rgba(59, 130, 246, 0.8)';
+			selectedRegion.element.style.border = '2px solid #3b82f6';
+		}
+		// Reset other regions
+		regions.getRegions().forEach((r: any) => {
+			if (r.id !== regionId) {
+				r.element.style.zIndex = '1';
+				r.element.style.boxShadow = '';
+				r.element.style.border = '';
+			}
+		});
+	}
+
 	function handleAddRegion() {
 		regionsList = addRegion(ws, regions, regionsList);
 		const newRegion = regionsList[regionsList.length - 1];
@@ -164,10 +186,29 @@
 		if (region) {
 			region.on('remove', () => handleRegionRemove(newRegion.id));
 			region.on('update-end', () => handleRegionUpdate(newRegion.id));
+			region.on('click', () => handleRegionClick(newRegion.id));
 		}
 
 		// Automatically select the newly created region
 		selectedRegionId = newRegion.id;
+		
+		// Bring the selected region to the top and highlight it
+		if (region) {
+			// Bring to front by setting higher z-index
+			region.element.style.zIndex = '1000';
+			// Add highlight effect
+			region.element.style.boxShadow = '0 0 10px 2px rgba(59, 130, 246, 0.8)';
+			region.element.style.border = '2px solid #3b82f6';
+		}
+		// Reset other regions
+		regions.getRegions().forEach((r: any) => {
+			if (r.id !== newRegion.id) {
+				r.element.style.zIndex = '1';
+				r.element.style.boxShadow = '';
+				r.element.style.border = '';
+			}
+		});
+		
 		searchTerm = '';
 	}
 
@@ -259,6 +300,13 @@
 				ws.on('ready', () => {
 					if (currentAudioData.interface === 2 && currentAudioData.aiRegions?.length > 0) {
 						regionsList = createAIRegions(ws, regions, currentAudioData.aiRegions);
+						// Add click event listeners to AI regions
+						regionsList.forEach((region) => {
+							const waveRegion = regions.getRegions().find((r: any) => r.id === region.id);
+							if (waveRegion) {
+								waveRegion.on('click', () => handleRegionClick(region.id));
+							}
+						});
 					}
 					mouseTrackingStore.setFileLoadTime();
 				});
@@ -339,6 +387,13 @@
 			ws.on('ready', () => {
 				if (audioUrl.interface === 2 && audioUrl.aiRegions && audioUrl.aiRegions.length > 0) {
 					regionsList = createAIRegions(ws, regions, audioUrl.aiRegions);
+					// Add click event listeners to AI regions
+					regionsList.forEach((region) => {
+						const waveRegion = regions.getRegions().find((r: any) => r.id === region.id);
+						if (waveRegion) {
+							waveRegion.on('click', () => handleRegionClick(region.id));
+						}
+					});
 				}
 				mouseTrackingStore.setFileLoadTime();
 			});
@@ -467,7 +522,26 @@
 						.find((r: any) => r.id === e)
 						?.remove();
 				}}
-				onClick={() => selectedRegionId = region.id}
+				onClick={() => {
+					selectedRegionId = region.id;
+					// Bring the selected region to the top and highlight it
+					const selectedRegion = regions.getRegions().find((r: any) => r.id === region.id);
+					if (selectedRegion) {
+						// Bring to front by setting higher z-index
+						selectedRegion.element.style.zIndex = '1000';
+						// Add highlight effect
+						selectedRegion.element.style.boxShadow = '0 0 10px 2px rgba(59, 130, 246, 0.8)';
+						selectedRegion.element.style.border = '2px solid #3b82f6';
+					}
+					// Reset other regions
+					regions.getRegions().forEach((r: any) => {
+						if (r.id !== region.id) {
+							r.element.style.zIndex = '1';
+							r.element.style.boxShadow = '';
+							r.element.style.border = '';
+						}
+					});
+				}}
 				isAIClass={isAIClass(region.annotation)}
 				isSelected={selectedRegionId === region.id}
 			/>
