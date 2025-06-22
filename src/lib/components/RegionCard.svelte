@@ -5,7 +5,7 @@
 	import { env } from '$env/dynamic/public';
 	import { mouseTrackingStore } from '$lib/stores/mouseTrackingStore';
 
-	let { region, onDelete, onAnnotationChange, onClick, isAIClass = false } = $props();
+	let { region, onDelete, onAnnotationChange, onClick, isAIClass = false, isSelected = false } = $props();
 	let selectedAnnotation = $state(region.annotation);
 	const API_URL = env.PUBLIC_API_URL;
 
@@ -41,7 +41,10 @@
 </script>
 
 <div 
-	class="relative group w-full max-w-[200px] mb-2 rounded-md shadow-lg p-0 flex items-center justify-between" 
+	class="relative group w-full max-w-[200px] mb-2 rounded-md shadow-lg p-0 flex items-center justify-between transition-all duration-200" 
+	class:border-2={isSelected}
+	class:border-blue-500={isSelected}
+	class:shadow-xl={isSelected}
 	style="background-color: {region.color};"
 	onmouseenter={handleMouseEnter}
 	onmouseleave={handleMouseLeave}

@@ -53,6 +53,7 @@
 	let selectedRegionId = $state<string | null>(null);
 	let labelingStartTime = $state<number | null>(null);
 	let currentAudioData = $state<any>(null);
+	let aiClassNames = $state<string[]>([]);
 	const API_URL = env.PUBLIC_API_URL;
 
 	let userId = $state('user');
@@ -113,7 +114,7 @@
 
 	// Check if a class is an AI class
 	function isAIClass(className: string): boolean {
-		return audioClasses.findIndex(c => c.name === className) < (audioClasses.length - defaultClasses.length);
+		return aiClassNames.includes(className);
 	}
 
 	// State update handlers
@@ -164,6 +165,10 @@
 			region.on('remove', () => handleRegionRemove(newRegion.id));
 			region.on('update-end', () => handleRegionUpdate(newRegion.id));
 		}
+
+		// Clear selected region to disable dropdown
+		selectedRegionId = null;
+		searchTerm = '';
 	}
 
 	async function handleLoadNewClip() {
@@ -220,6 +225,21 @@
 				regionsList = [];
 				labelingStartTime = null;
 				mouseTrackingStore.reset();
+
+				// For interface 2, also apply interface 1 functionality (AI classes at top)
+				if (result.interface === 2 && result.aiClasses && result.aiClasses.length > 0) {
+					const aiClassNamesList = result.aiClasses.map((c: any) => ({ name: c.label }));
+					// Remove any duplicates from the existing list
+					const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
+					const filteredClasses = audioClasses.filter((c: any) => !existingNames.has(c.name));
+					// Add AI classes to the top
+					audioClasses = [...aiClassNamesList, ...filteredClasses];
+					// Store AI class names for identification
+					aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
+				} else {
+					// For other interfaces, clear AI class names
+					aiClassNames = [];
+				}
 
 				// Reset playback state
 				setIsPlaying(false);
@@ -292,6 +312,21 @@
 			currentAudioId = audioUrl.id;
 			audioClasses = audioUrl.classes;
 			currentAudioData = audioUrl;
+
+			// For interface 2, also apply interface 1 functionality (AI classes at top)
+			if (audioUrl.interface === 2 && audioUrl.aiClasses && audioUrl.aiClasses.length > 0) {
+				const aiClassNamesList = audioUrl.aiClasses.map((c: any) => ({ name: c.label }));
+				// Remove any duplicates from the existing list
+				const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
+				const filteredClasses = audioClasses.filter((c: any) => !existingNames.has(c.name));
+				// Add AI classes to the top
+				audioClasses = [...aiClassNamesList, ...filteredClasses];
+				// Store AI class names for identification
+				aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
+			} else {
+				// For other interfaces, clear AI class names
+				aiClassNames = [];
+			}
 
 			loading = false;
 			await tick(); // Wait for DOM to update and #waveform to be present
@@ -434,6 +469,7 @@
 				}}
 				onClick={() => selectedRegionId = region.id}
 				isAIClass={isAIClass(region.annotation)}
+				isSelected={selectedRegionId === region.id}
 			/>
 		{/each}
 
@@ -448,18 +484,24 @@
 			onmouseenter={() => mouseTrackingStore.startHover('class-dropdown', false)}
 			onmouseleave={() => mouseTrackingStore.endHover('class-dropdown', false)}
 			class="w-full max-w-[200px] mt-4"
+			class:opacity-50={!selectedRegionId}
 		>
 			<input
 				type="text"
 				class="w-full h-9 rounded-md border border-gray-900 focus:outline-none focus:ring-2 text-gray-300 focus:ring-white px-2 text-xs sm:text-sm"
-				placeholder="Search or add new class..."
+				class:bg-gray-400={!selectedRegionId}
+				class:cursor-not-allowed={!selectedRegionId}
+				placeholder={selectedRegionId ? "Search or add new class..." : "Select a region first..."}
 				bind:value={searchTerm}
-				onkeydown={handleInputKeydown}
+				onkeydown={selectedRegionId ? handleInputKeydown : undefined}
+				disabled={!selectedRegionId}
 			/>
 
 			<ul
 				id="class-list"
 				class="w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg mt-1"
+				class:opacity-50={!selectedRegionId}
+				class:pointer-events-none={!selectedRegionId}
 				role="listbox"
 			>
 				{#each filteredClasses as { name }}
@@ -470,24 +512,28 @@
 						role="option"
 						aria-selected={Boolean(selectedRegionId && regionsList.find(r => r.id === selectedRegionId)?.annotation === name)}
 						class="w-full text-left px-2 py-1 text-xs sm:text-sm hover:bg-gray-300 cursor-pointer relative overflow-hidden"
-						class:bg-gray-100={isAIClass(name)}
-						onclick={() => handleClassSelection(name)}
+						class:bg-gray-300={isAIClass(name) && colors.length === 0}
+						class:cursor-not-allowed={!selectedRegionId}
+						onclick={selectedRegionId ? () => handleClassSelection(name) : undefined}
 					>
-						<div class="absolute inset-0 flex">
+						{#if colors.length > 0}
+						<div class="absolute inset-0 flex z-0">
 							{#each colors as color}
 								<div class="h-full" style="width: {100 / colors.length}%; background-color: {color}"></div>
 							{/each}
 						</div>
+						{/if}
 						<span class="relative z-10 px-2">{name}</span>
 					</button>
 				{:else}
 					{#if searchTerm}
 						<button
 							class="px-2 py-1 text-xs text-blue-600 cursor-pointer hover:bg-blue-100 w-full text-left"
-							onclick={async () => {
+							class:cursor-not-allowed={!selectedRegionId}
+							onclick={selectedRegionId ? async () => {
 								const newClass = await addNewClass(searchTerm);
 								if (newClass) handleClassSelection(newClass.name);
-							}}
+							} : undefined}
 						>
 							Add "{searchTerm}" as new class
 						</button>
