@@ -166,8 +166,8 @@
 			region.on('update-end', () => handleRegionUpdate(newRegion.id));
 		}
 
-		// Clear selected region to disable dropdown
-		selectedRegionId = null;
+		// Automatically select the newly created region
+		selectedRegionId = newRegion.id;
 		searchTerm = '';
 	}
 
