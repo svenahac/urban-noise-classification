@@ -200,6 +200,7 @@ export async function loadNewClip(
 				aiClasses: newaudioUrl.aiClasses ,
 				aiRegions: newaudioUrl.aiRegions ,
 				interface: newaudioUrl.interface ,
+				classes: newaudioUrl.classes,
 				sessionAnnotations: sessionAnnotations
 			};
 		} else {

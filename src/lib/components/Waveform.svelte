@@ -54,6 +54,7 @@
 	let labelingStartTime = $state<number | null>(null);
 	let currentAudioData = $state<any>(null);
 	let aiClassNames = $state<string[]>([]);
+	let noMoreFiles = $state(false);
 	const API_URL = env.PUBLIC_API_URL;
 
 	let userId = $state('user');
@@ -272,16 +273,18 @@
 				mouseTrackingStore.reset();
 
 				// Only for interface 1 or 2, if there are AI classes, add them to the top and set aiClassNames
+				aiClassNames = [];
 				if ((result.interface === 1 || result.interface === 2) && result.aiClasses && result.aiClasses.length > 0) {
 					const aiClassNamesList = result.aiClasses.map((c: any) => ({ name: c.label }));
-					// Remove any duplicates from the existing list
+					// Remove any duplicates from the new list of classes
 					const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
-					const filteredClasses = audioClasses.filter((c: any) => !existingNames.has(c.name));
-					// Add AI classes to the top
+					const filteredClasses = result.classes.filter((c: any) => !existingNames.has(c.name));
+					// Add AI classes to the top, only from the new response
 					audioClasses = [...aiClassNamesList, ...filteredClasses];
-					// Store AI class names for identification
 					aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
-				} else {
+				} else if (result.classes) {
+					// For interface 0, just use the classes array as-is
+					audioClasses = result.classes;
 					aiClassNames = [];
 				}
 
@@ -313,6 +316,12 @@
 					}
 					mouseTrackingStore.setFileLoadTime();
 				});
+
+				if (result && 'noMoreFiles' in result && result.noMoreFiles) {
+					noMoreFiles = true;
+					loading = false;
+					return;
+				}
 			} else {
 				loading = false;
 			}
@@ -361,6 +370,11 @@
 					URL.revokeObjectURL(currentAudioUrl);
 				}
 				audioUrl = await getRandomAudioClip(userId, username);
+				if (audioUrl && audioUrl.noMoreFiles) {
+					noMoreFiles = true;
+					loading = false;
+					return;
+				}
 			}
 
 			currentAudioUrl = audioUrl.url;
@@ -369,16 +383,18 @@
 			currentAudioData = audioUrl;
 
 			// Only for interface 1 or 2, if there are AI classes, add them to the top and set aiClassNames
+			aiClassNames = [];
 			if ((audioUrl.interface === 1 || audioUrl.interface === 2) && audioUrl.aiClasses && audioUrl.aiClasses.length > 0) {
 				const aiClassNamesList = audioUrl.aiClasses.map((c: any) => ({ name: c.label }));
-				// Remove any duplicates from the existing list
+				// Remove any duplicates from the new list of classes
 				const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
-				const filteredClasses = audioClasses.filter((c: any) => !existingNames.has(c.name));
-				// Add AI classes to the top
+				const filteredClasses = audioUrl.classes.filter((c: any) => !existingNames.has(c.name));
+				// Add AI classes to the top, only from the new response
 				audioClasses = [...aiClassNamesList, ...filteredClasses];
-				// Store AI class names for identification
 				aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
-			} else {
+			} else if (audioUrl.classes) {
+				// For interface 0, just use the classes array as-is
+				audioClasses = audioUrl.classes;
 				aiClassNames = [];
 			}
 
@@ -418,6 +434,16 @@
 		<div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
 		<span class="text-white text-lg font-semibold">Loading audio...</span>
 	</div>
+</div>
+{:else if noMoreFiles}
+<div class="absolute inset-0 flex flex-col items-center justify-center z-50 bg-gray-900 bg-opacity-80 min-h-screen w-full">
+	<span class="text-white text-lg font-semibold mb-4">No more files to annotate</span>
+	<button
+		class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded"
+		onclick={handleLogout}
+	>
+		Logout
+	</button>
 </div>
 {:else}
 <div class="flex flex-col items-center w-full max-w-xs sm:max-w-xl">

@@ -64,7 +64,7 @@ export async function getRandomAudioClip(userId: string, username?: string): Pro
 		});
 		// Extract headers
 		const headers = response.headers;
-		console.log(headers);
+		
 		// Get AI classes and interface value
 		const aiClassesStr = headers['x-ai-classes'];
 		const aiClasses = aiClassesStr ? (JSON.parse(aiClassesStr) as AIClass[]) : [];
@@ -96,6 +96,9 @@ export async function getRandomAudioClip(userId: string, username?: string): Pro
 			classes: classes // Add the processed classes to the return object
 		};
 	} catch (error) {
+		if (axios.isAxiosError(error) && error.response && error.response.status === 404) {
+			return { noMoreFiles: true };
+		}
 		console.error('Error fetching random audio clip:', error);
 		throw new Error('Failed to fetch audio clip');
 	}
