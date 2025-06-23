@@ -197,9 +197,9 @@ export async function loadNewClip(
 			return {
 				audioUrl: newaudioUrl.url,
 				audioId: newaudioUrl.id,
-				aiClasses: newaudioUrl.aiClasses || [],
-				aiRegions: newaudioUrl.aiRegions || [],
-				interface: newaudioUrl.interface || 0,
+				aiClasses: newaudioUrl.aiClasses ,
+				aiRegions: newaudioUrl.aiRegions ,
+				interface: newaudioUrl.interface ,
 				sessionAnnotations: sessionAnnotations
 			};
 		} else {

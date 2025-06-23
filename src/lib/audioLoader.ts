@@ -46,14 +46,17 @@ const markoUsers = [
 	'user27',
 	'user28',
 	'user29',
-	'user30'
+	'user30',
 ];
 
 export async function getRandomAudioClip(userId: string, username?: string): Promise<any> {
 	try {
 		// Use /marko endpoint if username is in markoUsers array, otherwise use /random/file
 		const endpoint = username && markoUsers.includes(username) ? 'marko' : 'random/file';
-		const url = `${API_URL}/clip/${endpoint}?userId=${encodeURIComponent(userId)}`;
+		let url = `${API_URL}/clip/${endpoint}?userId=${encodeURIComponent(userId)}`;
+		if (username) {
+			url += `&username=${encodeURIComponent(username)}`;
+		}
 
 		// Make the request with Axios
 		const response = await axios.get(url, {

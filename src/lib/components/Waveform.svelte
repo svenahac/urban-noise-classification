@@ -254,6 +254,10 @@
 			);
 
 			if (result) {
+				// Revoke previous audio URL if it exists
+				if (currentAudioUrl) {
+					URL.revokeObjectURL(currentAudioUrl);
+				}
 				// Update state with new audio data
 				currentAudioUrl = result.audioUrl;
 				currentAudioId = result.audioId;
@@ -267,8 +271,8 @@
 				labelingStartTime = null;
 				mouseTrackingStore.reset();
 
-				// For interface 2, also apply interface 1 functionality (AI classes at top)
-				if (result.interface === 2 && result.aiClasses && result.aiClasses.length > 0) {
+				// Only for interface 1 or 2, if there are AI classes, add them to the top and set aiClassNames
+				if ((result.interface === 1 || result.interface === 2) && result.aiClasses && result.aiClasses.length > 0) {
 					const aiClassNamesList = result.aiClasses.map((c: any) => ({ name: c.label }));
 					// Remove any duplicates from the existing list
 					const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
@@ -278,7 +282,6 @@
 					// Store AI class names for identification
 					aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
 				} else {
-					// For other interfaces, clear AI class names
 					aiClassNames = [];
 				}
 
@@ -353,6 +356,10 @@
 			loading = true;
 			let audioUrl = url;
 			if (!audioUrl) {
+				// Revoke previous audio URL if it exists
+				if (currentAudioUrl) {
+					URL.revokeObjectURL(currentAudioUrl);
+				}
 				audioUrl = await getRandomAudioClip(userId, username);
 			}
 
@@ -361,8 +368,8 @@
 			audioClasses = audioUrl.classes;
 			currentAudioData = audioUrl;
 
-			// For interface 2, also apply interface 1 functionality (AI classes at top)
-			if (audioUrl.interface === 2 && audioUrl.aiClasses && audioUrl.aiClasses.length > 0) {
+			// Only for interface 1 or 2, if there are AI classes, add them to the top and set aiClassNames
+			if ((audioUrl.interface === 1 || audioUrl.interface === 2) && audioUrl.aiClasses && audioUrl.aiClasses.length > 0) {
 				const aiClassNamesList = audioUrl.aiClasses.map((c: any) => ({ name: c.label }));
 				// Remove any duplicates from the existing list
 				const existingNames = new Set(aiClassNamesList.map((c: any) => c.name));
@@ -372,7 +379,6 @@
 				// Store AI class names for identification
 				aiClassNames = aiClassNamesList.map((c: { name: string }) => c.name);
 			} else {
-				// For other interfaces, clear AI class names
 				aiClassNames = [];
 			}
 
