@@ -204,7 +204,8 @@ export async function loadNewClip(
 				sessionAnnotations: sessionAnnotations
 			};
 		} else {
-			alert('No more unannotated audio clips available.');
+			//alert('No more unannotated audio clips available.');
+			window.location.reload();
 			return null;
 		}
 	} catch (error) {

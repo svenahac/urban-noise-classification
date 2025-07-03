@@ -64,7 +64,7 @@ export async function getRandomAudioClip(userId: string, username?: string): Pro
 		});
 		// Extract headers
 		const headers = response.headers;
-		
+	
 		// Get AI classes and interface value
 		const aiClassesStr = headers['x-ai-classes'];
 		const aiClasses = aiClassesStr ? (JSON.parse(aiClassesStr) as AIClass[]) : [];
