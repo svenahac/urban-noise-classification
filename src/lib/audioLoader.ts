@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
 import defaultClasses from '$lib/assets/classes.json';
+import { userStore } from '../stores/userStore';
 
 // Define your API endpoint for audio files
 const API_URL = env.PUBLIC_API_URL; // Ensure this is correctly defined
@@ -51,16 +52,26 @@ const markoUsers = [
 
 export async function getRandomAudioClip(userId: string, username?: string): Promise<any> {
 	try {
-		// Use /marko endpoint if username is in markoUsers array, otherwise use /random/file
-		const endpoint = username && markoUsers.includes(username) ? 'marko' : 'random/file';
-		let url = `${API_URL}/clip/${endpoint}?userId=${encodeURIComponent(userId)}`;
+		// Use /marko endpoint if username is in markoUsers array, otherwise use /section
+		const isMarko = username && markoUsers.includes(username);
+		let url = isMarko
+			? `${API_URL}/clip/marko?userId=${encodeURIComponent(userId)}`
+			: `${API_URL}/section?userId=${encodeURIComponent(userId)}`;
 		if (username) {
 			url += `&username=${encodeURIComponent(username)}`;
 		}
 
+		let token: string | null = null;
+		userStore.subscribe((value) => {
+			token = value.token || localStorage.getItem('auth_token');
+		})();
+
 		// Make the request with Axios
 		const response = await axios.get(url, {
-			responseType: 'blob' // Ensures the audio file is treated as a binary stream
+			responseType: 'blob', // Ensures the audio file is treated as a binary stream
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
 		});
 		// Extract headers
 		const headers = response.headers;

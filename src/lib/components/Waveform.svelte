@@ -69,7 +69,16 @@
 	// Add new class function
 	async function addNewClass(name: string) {
 		try {
-			const response = await axios.post(API_URL + '/classes', { name });
+			let token: string | null = null;
+			userStore.subscribe((value) => {
+				token = value.token || localStorage.getItem('auth_token');
+			})();
+
+			const response = await axios.post(
+				API_URL + '/classes',
+				{ name },
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
 			audioClasses = [...audioClasses, response.data];
 			return response.data;
 		} catch (error: any) {
